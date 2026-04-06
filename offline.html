@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#E8A0BF">
+  <title>Offline - ReposteriaCalc</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #FFF8FA;
+      color: #3D2C35;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+      text-align: center;
+    }
+    .offline-content { max-width: 400px; }
+    .offline-icon { font-size: 4rem; margin-bottom: 16px; }
+    h1 { font-size: 1.5rem; color: #B5607E; margin-bottom: 8px; }
+    p { color: #7A6570; margin-bottom: 24px; line-height: 1.6; }
+    button {
+      background: linear-gradient(135deg, #D4829E, #B5607E);
+      color: white;
+      border: none;
+      padding: 14px 32px;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(212, 130, 158, 0.3);
+    }
+    button:hover { transform: translateY(-1px); }
+  </style>
+</head>
+<body>
+  <div class="offline-content">
+    <div class="offline-icon">🧁</div>
+    <h1>Estás sin conexión</h1>
+    <p>No se pudo cargar ReposteriaCalc. Verifica tu conexión a internet e intenta de nuevo.</p>
+    <button onclick="location.reload()">Reintentar</button>
+  </div>
+</body>
+</html>

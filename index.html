@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="Calculadora de costos de reposteria - Galletas, tortas y postres">
+  <meta name="theme-color" content="#E8A0BF">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="format-detection" content="telephone=no">
+  <title>ReposteriaCalc - Calculadora de Costos</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" type="image/svg+xml" href="icons/icon-192.svg">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+</head>
+<body>
+  <div id="install-banner" class="install-banner hidden">
+    <span>Instala ReposteriaCalc en tu dispositivo</span>
+    <button id="install-btn" class="btn-install">Instalar</button>
+    <button id="dismiss-install" class="btn-dismiss">&times;</button>
+  </div>
+
+  <header class="header">
+    <div class="header-content">
+      <div class="logo">
+        <svg class="logo-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="32" cy="32" r="30" fill="#E8A0BF" opacity="0.2"/>
+          <path d="M32 12c-2 0-4 2-4 4v4h8v-4c0-2-2-4-4-4z" fill="#D4829E"/>
+          <ellipse cx="32" cy="38" rx="18" ry="14" fill="#F5D5E0"/>
+          <ellipse cx="32" cy="36" rx="16" ry="12" fill="#FFF0F5"/>
+          <circle cx="24" cy="32" r="2" fill="#E8A0BF"/>
+          <circle cx="32" cy="28" r="2" fill="#E8A0BF"/>
+          <circle cx="40" cy="32" r="2" fill="#E8A0BF"/>
+          <path d="M20 44c0 0 4 6 12 6s12-6 12-6" stroke="#D4829E" stroke-width="2" fill="none"/>
+        </svg>
+        <h1>ReposteriaCalc</h1>
+      </div>
+      <p class="header-subtitle">Calculadora de Costos</p>
+    </div>
+  </header>
+
+  <main class="main">
+    <div class="card">
+      <h2 class="card-title">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="16" y1="13" x2="8" y2="13"/>
+          <line x1="16" y1="17" x2="8" y2="17"/>
+        </svg>
+        Datos de la Receta
+      </h2>
+
+      <div class="form-group">
+        <label for="recipe-name">Nombre de la Receta</label>
+        <input type="text" id="recipe-name" placeholder="Ej: Torta de Chocolate" autocomplete="off">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label for="pieces-count">Piezas Producidas</label>
+          <input type="number" id="pieces-count" value="1" min="1" placeholder="1">
+        </div>
+        <div class="form-group">
+          <label for="profit-margin">Margen de Ganancia (%)</label>
+          <input type="number" id="profit-margin" value="50" min="0" max="1000" placeholder="50">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header-row">
+        <h2 class="card-title">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+            <path d="M2 17l10 5 10-5"/>
+            <path d="M2 12l10 5 10-5"/>
+          </svg>
+          Ingredientes
+        </h2>
+      </div>
+
+      <div id="ingredients-list" class="ingredients-list"></div>
+      
+      <div class="card-footer">
+        <button id="add-ingredient" class="btn-add full-width">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Agregar Ingrediente
+        </button>
+      </div>
+    </div>
+
+    <div id="summary" class="card summary-card">
+      <h2 class="card-title">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="12" y1="1" x2="12" y2="23"/>
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+        </svg>
+        Resumen de Costos
+      </h2>
+
+      <div class="summary-header">
+        <span class="summary-recipe-name" id="summary-recipe-name">-</span>
+        <div class="summary-recipe-meta">
+          <span class="meta-badge" id="summary-pieces">0 piezas</span>
+          <span class="meta-badge" id="summary-margin">0% margen</span>
+        </div>
+      </div>
+
+      <div class="summary-grid">
+        <div class="summary-item">
+          <span class="summary-label">Costo Materia Prima</span>
+          <span class="summary-value" id="total-cost">$0.00</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Costo por Unidad</span>
+          <span class="summary-value" id="unit-cost">$0.00</span>
+        </div>
+        <div class="summary-item highlight">
+          <span class="summary-label">Precio de Venta Sugerido</span>
+          <span class="summary-value" id="sale-price">$0.00</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">Ganancia por Unidad</span>
+          <span class="summary-value" id="profit-per-unit">$0.00</span>
+        </div>
+      </div>
+
+      <div id="cost-breakdown" class="cost-breakdown hidden">
+        <h3 class="breakdown-title">Desglose por Ingrediente</h3>
+        <div id="breakdown-list"></div>
+      </div>
+    </div>
+
+    <div class="actions-bar">
+      <button id="open-history" class="btn-primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+        Historial
+      </button>
+      <button id="clear-all" class="btn-secondary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3 6 5 6 21 6"/>
+          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+        </svg>
+        Limpiar Todo
+      </button>
+      <button id="save-recipe" class="btn-primary">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="17 3 17 7 21 7"/>
+        </svg>
+        Guardar Receta
+      </button>
+    </div>
+  </main>
+
+  <div id="history-modal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 class="modal-title">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12 6 12 12 16 14"/>
+          </svg>
+          Historial de Recetas
+        </h2>
+        <button id="close-history" class="btn-modal-close" aria-label="Cerrar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </div>
+      <div id="history-list" class="history-list">
+        <div class="history-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+          <p>No hay recetas guardadas aún</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <p>ReposteriaCalc &copy; 2026 - Hecho con <span class="heart">&hearts;</span> para reposteros</p>
+  </footer>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

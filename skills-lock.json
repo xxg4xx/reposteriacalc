@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "pwa-development": {
+      "source": "alinaqi/claude-bootstrap",
+      "sourceType": "github",
+      "computedHash": "ca0faa4bf18928a96e7128897581f35fa15e2a9d5a1b2f0056a9b03212ee3112"
+    }
+  }
+}
