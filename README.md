@@ -12,20 +12,8 @@ Calculadora de costos de repostería - Calcula el costo de tus recetas de gallet
 
 ## Uso
 
-1. Abre `index.html` en un navegador
+1. Abre en un navegador
 2. Ingresa el nombre de la receta
 3. Agrega los ingredientes con precio y cantidad
 4. Define el margen de ganancia
 5. Guarda las recetas para reutilizarlas
-
-## Deploy
-
-Este proyecto está configurado para GitHub Pages.
-
-```bash
-git add .
-git commit -m "Initial commit"
-git push origin main
-```
-
-Luego habilita GitHub Pages en Settings > Pages > Deploy from main branch.
