@@ -401,7 +401,9 @@ input[type="number"]::-webkit-inner-spin-button {
 }
 
 .ingredient-grid .form-group:nth-child(1),
-.ingredient-grid .form-group:nth-child(2) {
+.ingredient-grid .form-group:nth-child(2),
+.ingredient-grid .form-group:nth-child(3),
+.ingredient-grid .form-group:nth-child(4) {
   grid-column: 1 / -1;
 }
 
@@ -557,6 +559,14 @@ input[type="number"]::-webkit-inner-spin-button {
 .summary-item.highlight .summary-label {
   color: #FFFFFF;
   font-weight: 600;
+}
+
+.summary-item.labor {
+  border-left: 3px solid #4A90D9;
+}
+
+.summary-item.operating {
+  border-left: 3px solid #D98245;
 }
 
 /* Cost Breakdown */

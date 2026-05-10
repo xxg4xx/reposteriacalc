@@ -1,8 +1,9 @@
-const CACHE_NAME = 'reposteriacalc-v2';
+const CACHE_NAME = 'reposteriacalc-v3';
 
 const STATIC_ASSETS = [
   '/',
   '/index.html',
+  '/offline.html',
   '/styles.css',
   '/app.js',
   '/manifest.json'

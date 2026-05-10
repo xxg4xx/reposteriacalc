@@ -99,8 +99,11 @@ function calculateAll() {
   const recipeName = document.getElementById('recipe-name').value || 'Sin nombre';
   const piecesCount = parseInt(document.getElementById('pieces-count').value) || 1;
   const profitMargin = parseFloat(document.getElementById('profit-margin').value) || 0;
+  const laborCost = parseFloat(document.getElementById('labor-cost').value) || 0;
+  const operatingCost = parseFloat(document.getElementById('operating-cost').value) || 0;
 
-  const unitCost = piecesCount > 0 ? totalCost / piecesCount : 0;
+  const grandTotalCost = totalCost + laborCost + operatingCost;
+  const unitCost = piecesCount > 0 ? grandTotalCost / piecesCount : 0;
   const salePrice = unitCost * (1 + profitMargin / 100);
   const profitPerUnit = salePrice - unitCost;
 
@@ -108,6 +111,8 @@ function calculateAll() {
   document.getElementById('summary-pieces').textContent = `${piecesCount} pieza${piecesCount !== 1 ? 's' : ''}`;
   document.getElementById('summary-margin').textContent = `${profitMargin}% margen`;
   document.getElementById('total-cost').textContent = formatCurrency(totalCost);
+  document.getElementById('labor-cost-display').textContent = formatCurrency(laborCost);
+  document.getElementById('operating-cost-display').textContent = formatCurrency(operatingCost);
   document.getElementById('unit-cost').textContent = formatCurrency(unitCost);
   document.getElementById('sale-price').textContent = formatCurrency(salePrice);
   document.getElementById('profit-per-unit').textContent = formatCurrency(profitPerUnit);
@@ -174,7 +179,7 @@ function createIngredientCard(data = {}) {
         <label>Cant. Comprada</label>
         <div class="qty-unit-row">
           <input type="number" data-field="boughtQty" data-id="${id}" value="${boughtQty}" placeholder="0" min="0" step="any" class="qty-input">
-          <select data-field="boughtUnit" data-id="${id}" class="unit-select-inline">
+          <select data-field="boughtUnit" data-id="${id}" class="unit-select-inline" autocomplete="off">
             <option value="g" ${boughtUnit === 'g' ? 'selected' : ''}>g</option>
             <option value="kg" ${boughtUnit === 'kg' ? 'selected' : ''}>kg</option>
             <option value="ml" ${boughtUnit === 'ml' ? 'selected' : ''}>ml</option>
@@ -187,7 +192,7 @@ function createIngredientCard(data = {}) {
         <label>Cant. a Usar</label>
         <div class="qty-unit-row">
           <input type="number" data-field="usedQty" data-id="${id}" value="${usedQty}" placeholder="0" min="0" step="any" class="qty-input">
-          <select data-field="usedUnit" data-id="${id}" class="unit-select-inline">
+          <select data-field="usedUnit" data-id="${id}" class="unit-select-inline" autocomplete="off">
             <option value="g" ${usedUnit === 'g' ? 'selected' : ''}>g</option>
             <option value="kg" ${usedUnit === 'kg' ? 'selected' : ''}>kg</option>
             <option value="ml" ${usedUnit === 'ml' ? 'selected' : ''}>ml</option>
@@ -232,6 +237,8 @@ function collectData() {
   const recipeName = document.getElementById('recipe-name').value;
   const piecesCount = parseInt(document.getElementById('pieces-count').value) || 1;
   const profitMargin = parseFloat(document.getElementById('profit-margin').value) || 0;
+  const laborCost = parseFloat(document.getElementById('labor-cost').value) || 0;
+  const operatingCost = parseFloat(document.getElementById('operating-cost').value) || 0;
 
   const ingredients = [];
   document.querySelectorAll('.ingredient-card').forEach(card => {
@@ -246,7 +253,7 @@ function collectData() {
     });
   });
 
-  return { recipeName, piecesCount, profitMargin, ingredients, nextId: ingredientIdCounter + 1 };
+  return { recipeName, piecesCount, profitMargin, laborCost, operatingCost, ingredients, nextId: ingredientIdCounter + 1 };
 }
 
 function saveData() {
@@ -275,6 +282,8 @@ function restoreData(data) {
   document.getElementById('recipe-name').value = data.recipeName || '';
   document.getElementById('pieces-count').value = data.piecesCount || 1;
   document.getElementById('profit-margin').value = data.profitMargin ?? 50;
+  document.getElementById('labor-cost').value = data.laborCost ?? 0;
+  document.getElementById('operating-cost').value = data.operatingCost ?? 0;
 
   if (data.ingredients && data.ingredients.length > 0) {
     data.ingredients.forEach(ing => addIngredient(ing));
@@ -294,6 +303,8 @@ function clearAllNoConfirm() {
   document.getElementById('recipe-name').value = '';
   document.getElementById('pieces-count').value = 1;
   document.getElementById('profit-margin').value = 50;
+  document.getElementById('labor-cost').value = 0;
+  document.getElementById('operating-cost').value = 0;
   document.getElementById('ingredients-list').innerHTML = '';
   ingredientIdCounter = 0;
 
@@ -567,6 +578,8 @@ function init() {
   document.getElementById('pieces-count').addEventListener('input', calculateAll);
   document.getElementById('profit-margin').addEventListener('input', calculateAll);
   document.getElementById('recipe-name').addEventListener('input', calculateAll);
+  document.getElementById('labor-cost').addEventListener('input', calculateAll);
+  document.getElementById('operating-cost').addEventListener('input', calculateAll);
 
   const saved = loadData();
   if (action === 'history') {
