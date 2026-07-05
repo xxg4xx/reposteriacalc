@@ -1,116 +1,59 @@
-const STORAGE_KEY = 'reposteriacalc_data';
-const HISTORY_KEY = 'reposteriacalc_history';
-const CURRENCY = '$';
+import { normalizeNumber, toBaseUnit, calculateIngredientCost, formatCurrency, isSameUnitGroup, escapeHtml, CURRENCY, UNIT_GROUPS, TO_BASE } from './src/calculations.js'
 
-const UNIT_GROUPS = {
-  weight: ['kg', 'g'],
-  volume: ['L', 'ml'],
-  count: ['Uni']
-};
+const STORAGE_KEY = 'reposteriacalc_data'
+const HISTORY_KEY = 'reposteriacalc_history'
 
-const TO_BASE = {
-  kg: 1000,
-  g: 1,
-  L: 1000,
-  ml: 1,
-  Uni: 1
-};
-
-let ingredientIdCounter = 0;
-let deferredPrompt = null;
-let isWebView = false;
-let memoryStorage = {};
+let ingredientIdCounter = 0
+let deferredPrompt = null
+let isWebView = false
+const memoryStorage = {}
 
 function detectEnvironment() {
-  const ua = navigator.userAgent || '';
+  const ua = navigator.userAgent || ''
   isWebView = /wv/.test(ua) ||
               (/Android/.test(ua) && !/Chrome/.test(ua)) ||
               window.location.protocol === 'file:' ||
-              (window.Android !== undefined);
-  console.log('Environment:', isWebView ? 'WebView (APK)' : 'Browser');
+              (window.Android !== undefined)
+  console.log('Environment:', isWebView ? 'WebView (APK)' : 'Browser')
 }
 
 function safeStorageGet(key) {
   try {
-    return localStorage.getItem(key);
+    return localStorage.getItem(key)
   } catch (e) {
-    return key in memoryStorage ? memoryStorage[key] : null;
+    return key in memoryStorage ? memoryStorage[key] : null
   }
 }
 
 function safeStorageSet(key, value) {
   try {
-    localStorage.setItem(key, value);
+    localStorage.setItem(key, value)
   } catch (e) {
-    memoryStorage[key] = value;
+    memoryStorage[key] = value
   }
 }
 
-function toBaseUnit(value, unit) {
-  if (!(unit in TO_BASE)) return value;
-  return value * TO_BASE[unit];
-}
 
-function normalizeNumber(value) {
-  if (value == null || value === '') return 0
-  if (typeof value === 'string') {
-    value = value.replace(',', '.')
-  }
-  return value
-}
-
-function isSameUnitGroup(unit1, unit2) {
-  if (!unit1 || !unit2) return true
-  for (const group of Object.values(UNIT_GROUPS)) {
-    if (group.includes(unit1) && group.includes(unit2)) return true
-  }
-  return false
-}
-
-function calculateIngredientCost(ingredient) {
-  const price = parseFloat(normalizeNumber(ingredient.price)) || 0;
-  const boughtQty = parseFloat(normalizeNumber(ingredient.boughtQty)) || 0;
-  const usedQty = parseFloat(normalizeNumber(ingredient.usedQty)) || 0;
-  const boughtUnit = ingredient.boughtUnit;
-  const usedUnit = ingredient.usedUnit;
-
-  if (price <= 0 || boughtQty <= 0 || usedQty <= 0) return { cost: 0, warning: false };
-
-  const warning = boughtUnit && usedUnit && !isSameUnitGroup(boughtUnit, usedUnit);
-
-  if (boughtUnit === usedUnit) {
-    return { cost: (price / boughtQty) * usedQty, warning };
-  }
-
-  const boughtBase = toBaseUnit(boughtQty, boughtUnit);
-  const usedBase = toBaseUnit(usedQty, usedUnit);
-  return { cost: (price / boughtBase) * usedBase, warning };
-}
-
-function formatCurrency(value) {
-  if (!Number.isFinite(value)) return `${CURRENCY}0.00`;
-  return `${CURRENCY}${value.toFixed(2)}`;
-}
 
 function calculateAll() {
-  const cards = document.querySelectorAll('.ingredient-card');
-  let totalCost = 0;
-  const breakdown = [];
+  const cards = document.querySelectorAll('.ingredient-card')
+  let totalCost = 0
+  const breakdown = []
 
   cards.forEach(card => {
-    const id = card.dataset.id;
-    const name = card.querySelector(`[data-field="name"][data-id="${id}"]`).value || 'Sin nombre';
-    const price = parseFloat(normalizeNumber(card.querySelector(`[data-field="price"][data-id="${id}"]`).value)) || 0;
-    const boughtQty = parseFloat(normalizeNumber(card.querySelector(`[data-field="boughtQty"][data-id="${id}"]`).value)) || 0;
-    const boughtUnit = card.querySelector(`[data-field="boughtUnit"][data-id="${id}"]`).value;
-    const usedQty = parseFloat(normalizeNumber(card.querySelector(`[data-field="usedQty"][data-id="${id}"]`).value)) || 0;
-    const usedUnit = card.querySelector(`[data-field="usedUnit"][data-id="${id}"]`).value;
+    const id = card.dataset.id
+    const name = card.querySelector(`[data-field="name"][data-id="${id}"]`).value || 'Sin nombre'
+    const price = parseFloat(normalizeNumber(card.querySelector(`[data-field="price"][data-id="${id}"]`).value)) || 0
+    const boughtQty = parseFloat(normalizeNumber(card.querySelector(`[data-field="boughtQty"][data-id="${id}"]`).value)) || 0
+    const boughtUnit = card.querySelector(`[data-field="boughtUnit"][data-id="${id}"]`).value
+    const usedQty = parseFloat(normalizeNumber(card.querySelector(`[data-field="usedQty"][data-id="${id}"]`).value)) || 0
+    const usedUnit = card.querySelector(`[data-field="usedUnit"][data-id="${id}"]`).value
 
-    const result = calculateIngredientCost({ price, boughtQty, boughtUnit, usedQty, usedUnit });
-    totalCost += result.cost;
+    const result = calculateIngredientCost({ price, boughtQty, boughtUnit, usedQty, usedUnit })
+    totalCost += result.cost
 
-    const costEl = card.querySelector('.ingredient-cost-value');
-    if (costEl) costEl.textContent = formatCurrency(result.cost);
+    const costEl = card.querySelector('.ingredient-cost-value')
+    if (costEl) costEl.textContent = formatCurrency(result.cost)
 
     // M5: toggle unit group warning
     const boughtSelect = card.querySelector(`[data-field="boughtUnit"][data-id="${id}"]`)
@@ -124,36 +67,36 @@ function calculateAll() {
     }
 
     if (boughtQty > 0 && usedQty > 0) {
-      breakdown.push({ name, cost: result.cost });
+      breakdown.push({ name, cost: result.cost })
     }
-  });
+  })
 
-  const recipeName = document.getElementById('recipe-name').value || 'Sin nombre';
-  const piecesCount = parseInt(document.getElementById('pieces-count').value) || 1;
-  const profitMargin = parseFloat(normalizeNumber(document.getElementById('profit-margin').value)) || 0;
-  const laborCost = parseFloat(normalizeNumber(document.getElementById('labor-cost').value)) || 0;
-  const operatingCost = parseFloat(normalizeNumber(document.getElementById('operating-cost').value)) || 0;
+  const recipeName = document.getElementById('recipe-name').value || 'Sin nombre'
+  const piecesCount = parseInt(document.getElementById('pieces-count').value) || 1
+  const profitMargin = parseFloat(normalizeNumber(document.getElementById('profit-margin').value)) || 0
+  const laborCost = parseFloat(normalizeNumber(document.getElementById('labor-cost').value)) || 0
+  const operatingCost = parseFloat(normalizeNumber(document.getElementById('operating-cost').value)) || 0
 
-  const grandTotalCost = totalCost + laborCost + operatingCost;
-  const unitCost = piecesCount > 0 ? grandTotalCost / piecesCount : 0;
-  const salePrice = unitCost * (1 + profitMargin / 100);
-  const profitPerUnit = salePrice - unitCost;
+  const grandTotalCost = totalCost + laborCost + operatingCost
+  const unitCost = piecesCount > 0 ? grandTotalCost / piecesCount : 0
+  const salePrice = unitCost * (1 + profitMargin / 100)
+  const profitPerUnit = salePrice - unitCost
 
-  document.getElementById('summary-recipe-name').textContent = recipeName;
-  document.getElementById('summary-pieces').textContent = `${piecesCount} pieza${piecesCount !== 1 ? 's' : ''}`;
-  document.getElementById('summary-margin').textContent = `${profitMargin}% margen`;
-  document.getElementById('total-cost').textContent = formatCurrency(totalCost);
-  document.getElementById('labor-cost-display').textContent = formatCurrency(laborCost);
-  document.getElementById('operating-cost-display').textContent = formatCurrency(operatingCost);
-  document.getElementById('unit-cost').textContent = formatCurrency(unitCost);
-  document.getElementById('sale-price').textContent = formatCurrency(salePrice);
-  document.getElementById('profit-per-unit').textContent = formatCurrency(profitPerUnit);
+  document.getElementById('summary-recipe-name').textContent = recipeName
+  document.getElementById('summary-pieces').textContent = `${piecesCount} pieza${piecesCount !== 1 ? 's' : ''}`
+  document.getElementById('summary-margin').textContent = `${profitMargin}% margen`
+  document.getElementById('total-cost').textContent = formatCurrency(totalCost)
+  document.getElementById('labor-cost-display').textContent = formatCurrency(laborCost)
+  document.getElementById('operating-cost-display').textContent = formatCurrency(operatingCost)
+  document.getElementById('unit-cost').textContent = formatCurrency(unitCost)
+  document.getElementById('sale-price').textContent = formatCurrency(salePrice)
+  document.getElementById('profit-per-unit').textContent = formatCurrency(profitPerUnit)
 
-  const breakdownEl = document.getElementById('cost-breakdown');
-  const breakdownList = document.getElementById('breakdown-list');
+  const breakdownEl = document.getElementById('cost-breakdown')
+  const breakdownList = document.getElementById('breakdown-list')
 
   if (breakdown.length > 0) {
-    breakdownEl.classList.remove('hidden');
+    breakdownEl.classList.remove('hidden')
     breakdownList.innerHTML = breakdown
       .map(item => `
         <div class="breakdown-item">
@@ -161,35 +104,26 @@ function calculateAll() {
           <span class="cost">${formatCurrency(item.cost)}</span>
         </div>
       `)
-      .join('');
+      .join('')
   } else {
-    breakdownEl.classList.add('hidden');
+    breakdownEl.classList.add('hidden')
   }
 
-  saveData();
-}
-
-function escapeHtml(text) {
-  return String(text)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+  saveData()
 }
 
 function createIngredientCard(data = {}) {
-  const id = ++ingredientIdCounter;
-  const card = document.createElement('div');
-  card.className = 'ingredient-card';
-  card.dataset.id = id;
+  const id = ++ingredientIdCounter
+  const card = document.createElement('div')
+  card.className = 'ingredient-card'
+  card.dataset.id = id
 
-  const name = data.name || '';
-  const price = data.price || '';
-  const boughtQty = data.boughtQty || '';
-  const boughtUnit = data.boughtUnit || 'g';
-  const usedQty = data.usedQty || '';
-  const usedUnit = data.usedUnit || 'g';
+  const name = data.name || ''
+  const price = data.price || ''
+  const boughtQty = data.boughtQty || ''
+  const boughtUnit = data.boughtUnit || 'g'
+  const usedQty = data.usedQty || ''
+  const usedUnit = data.usedUnit || 'g'
 
   card.innerHTML = `
     <div class="ingredient-header">
@@ -241,43 +175,43 @@ function createIngredientCard(data = {}) {
       <span>Costo:</span>
       <strong class="ingredient-cost-value">${CURRENCY}0.00</strong>
     </div>
-  `;
+  `
 
   card.querySelector('.btn-remove').addEventListener('click', () => {
-    card.style.transition = 'all 0.3s ease';
-    card.style.opacity = '0';
-    card.style.transform = 'translateX(20px)';
+    card.style.transition = 'all 0.3s ease'
+    card.style.opacity = '0'
+    card.style.transform = 'translateX(20px)'
     setTimeout(() => {
-      card.remove();
-      calculateAll();
-    }, 300);
-  });
+      card.remove()
+      calculateAll()
+    }, 300)
+  })
 
   card.querySelectorAll('input, select').forEach(input => {
-    input.addEventListener('input', calculateAll);
-  });
+    input.addEventListener('input', calculateAll)
+  })
 
-  return card;
+  return card
 }
 
 function addIngredient(data = {}) {
-  const list = document.getElementById('ingredients-list');
-  const card = createIngredientCard(data);
-  list.appendChild(card);
-  calculateAll();
-  return card;
+  const list = document.getElementById('ingredients-list')
+  const card = createIngredientCard(data)
+  list.appendChild(card)
+  calculateAll()
+  return card
 }
 
-function collectData() {
-  const recipeName = document.getElementById('recipe-name').value;
-  const piecesCount = parseInt(normalizeNumber(document.getElementById('pieces-count').value)) || 1;
-  const profitMargin = parseFloat(normalizeNumber(document.getElementById('profit-margin').value)) || 0;
-  const laborCost = parseFloat(normalizeNumber(document.getElementById('labor-cost').value)) || 0;
-  const operatingCost = parseFloat(normalizeNumber(document.getElementById('operating-cost').value)) || 0;
+function collectData(fromElement = document) {
+  const recipeName = document.getElementById('recipe-name').value
+  const piecesCount = parseInt(normalizeNumber(document.getElementById('pieces-count').value)) || 1
+  const profitMargin = parseFloat(normalizeNumber(document.getElementById('profit-margin').value)) || 0
+  const laborCost = parseFloat(normalizeNumber(document.getElementById('labor-cost').value)) || 0
+  const operatingCost = parseFloat(normalizeNumber(document.getElementById('operating-cost').value)) || 0
 
-  const ingredients = [];
-  document.querySelectorAll('.ingredient-card').forEach(card => {
-    const id = card.dataset.id;
+  const ingredients = []
+  fromElement.querySelectorAll('.ingredient-card').forEach(card => {
+    const id = card.dataset.id
     ingredients.push({
       name: card.querySelector(`[data-field="name"][data-id="${id}"]`).value,
       price: card.querySelector(`[data-field="price"][data-id="${id}"]`).value,
@@ -285,91 +219,91 @@ function collectData() {
       boughtUnit: card.querySelector(`[data-field="boughtUnit"][data-id="${id}"]`).value,
       usedQty: card.querySelector(`[data-field="usedQty"][data-id="${id}"]`).value,
       usedUnit: card.querySelector(`[data-field="usedUnit"][data-id="${id}"]`).value
-    });
-  });
+    })
+  })
 
-  return { recipeName, piecesCount, profitMargin, laborCost, operatingCost, ingredients, nextId: ingredientIdCounter + 1 };
+  return { recipeName, piecesCount, profitMargin, laborCost, operatingCost, ingredients, nextId: ingredientIdCounter + 1 }
 }
 
 function saveData() {
   try {
-    const data = collectData();
-    safeStorageSet(STORAGE_KEY, JSON.stringify(data));
+    const data = collectData()
+    safeStorageSet(STORAGE_KEY, JSON.stringify(data))
   } catch (e) {
-    console.warn('Could not save data:', e);
-    showToast('Error al guardar los datos');
+    console.warn('Could not save data:', e)
+    showToast('Error al guardar los datos')
   }
 }
 
 function loadData() {
   try {
-    const raw = safeStorageGet(STORAGE_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
+    const raw = safeStorageGet(STORAGE_KEY)
+    if (!raw) return null
+    return JSON.parse(raw)
   } catch (e) {
-    console.warn('Could not load data:', e);
-    showToast('Error al cargar los datos');
-    return null;
+    console.warn('Could not load data:', e)
+    showToast('Error al cargar los datos')
+    return null
   }
 }
 
 function restoreData(data) {
-  if (!data) return;
+  if (!data) return
 
-  document.getElementById('recipe-name').value = data.recipeName || '';
-  document.getElementById('pieces-count').value = data.piecesCount || 1;
-  document.getElementById('profit-margin').value = data.profitMargin ?? 50;
-  document.getElementById('labor-cost').value = data.laborCost ?? 0;
-  document.getElementById('operating-cost').value = data.operatingCost ?? 0;
+  document.getElementById('recipe-name').value = data.recipeName || ''
+  document.getElementById('pieces-count').value = data.piecesCount || 1
+  document.getElementById('profit-margin').value = data.profitMargin ?? 50
+  document.getElementById('labor-cost').value = data.laborCost ?? 0
+  document.getElementById('operating-cost').value = data.operatingCost ?? 0
 
   if (data.ingredients && data.ingredients.length > 0) {
-    data.ingredients.forEach(ing => addIngredient(ing));
+    data.ingredients.forEach(ing => addIngredient(ing))
   }
 
   if (data.nextId) {
-    ingredientIdCounter = data.nextId;
+    ingredientIdCounter = data.nextId
   }
 }
 
 function clearAll() {
-  if (!confirm('¿Estás seguro de que deseas limpiar todos los datos?')) return;
-  clearAllNoConfirm();
+  if (!confirm('¿Estás seguro de que deseas limpiar todos los datos?')) return
+  clearAllNoConfirm()
 }
 
 function clearAllNoConfirm() {
-  document.getElementById('recipe-name').value = '';
-  document.getElementById('pieces-count').value = 1;
-  document.getElementById('profit-margin').value = 50;
-  document.getElementById('labor-cost').value = 0;
-  document.getElementById('operating-cost').value = 0;
-  document.getElementById('ingredients-list').innerHTML = '';
-  ingredientIdCounter = 0;
+  document.getElementById('recipe-name').value = ''
+  document.getElementById('pieces-count').value = 1
+  document.getElementById('profit-margin').value = 50
+  document.getElementById('labor-cost').value = 0
+  document.getElementById('operating-cost').value = 0
+  document.getElementById('ingredients-list').innerHTML = ''
+  ingredientIdCounter = 0
 
-  addIngredient();
-  calculateAll();
-  showToast('Nueva receta creada');
+  addIngredient()
+  calculateAll()
+  showToast('Nueva receta creada')
 }
 
 function showToast(message) {
-  const toast = document.getElementById('toast');
-  if (!toast) return;
-  toast.textContent = message;
-  toast.classList.remove('hidden');
-  clearTimeout(toast._timeout);
-  toast._timeout = setTimeout(() => toast.classList.add('hidden'), 3000);
+  const toast = document.getElementById('toast')
+  if (!toast) return
+  toast.textContent = message
+  toast.classList.remove('hidden')
+  clearTimeout(toast._timeout)
+  toast._timeout = setTimeout(() => toast.classList.add('hidden'), 3000)
 }
 
 function saveRecipe() {
-  const data = collectData();
-  const recipeName = data.recipeName || 'Sin nombre';
+  const data = collectData()
+  const recipeName = data.recipeName || 'Sin nombre'
   if (!data.recipeName) {
-    showToast('Escribe un nombre para la receta');
-    document.getElementById('recipe-name').focus();
-    return;
+    showToast('Escribe un nombre para la receta')
+    document.getElementById('recipe-name').focus()
+    return
   }
 
-  const history = loadHistory();
-  const now = new Date().toISOString();
+  const history = loadHistory()
+  const now = new Date().toISOString()
 
   const recipeEntry = {
     id: Date.now().toString(),
@@ -382,27 +316,27 @@ function saveRecipe() {
     nextId: data.nextId,
     createdAt: now,
     updatedAt: now
-  };
+  }
 
-  history.unshift(recipeEntry);
-  if (history.length > 50) history.pop();
+  history.unshift(recipeEntry)
+  if (history.length > 50) history.pop()
 
-  safeStorageSet(HISTORY_KEY, JSON.stringify(history));
-  showToast(`"${recipeName}" guardada en historial`);
+  safeStorageSet(HISTORY_KEY, JSON.stringify(history))
+  showToast(`"${recipeName}" guardada en historial`)
 }
 
 function loadHistory() {
   try {
-    const raw = safeStorageGet(HISTORY_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const raw = safeStorageGet(HISTORY_KEY)
+    return raw ? JSON.parse(raw) : []
   } catch (e) {
-    return [];
+    return []
   }
 }
 
 function renderHistory() {
-  const history = loadHistory();
-  const list = document.getElementById('history-list');
+  const history = loadHistory()
+  const list = document.getElementById('history-list')
 
   if (history.length === 0) {
     list.innerHTML = `
@@ -413,15 +347,15 @@ function renderHistory() {
         </svg>
         <p>No hay recetas guardadas aún</p>
       </div>
-    `;
-    return;
+    `
+    return
   }
 
   list.innerHTML = history.map(recipe => {
-    const date = new Date(recipe.updatedAt);
-    const dateStr = date.toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric' });
-    const timeStr = date.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
-    const ingCount = recipe.ingredients ? recipe.ingredients.length : 0;
+    const date = new Date(recipe.updatedAt)
+    const dateStr = date.toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric' })
+    const timeStr = date.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
+    const ingCount = recipe.ingredients ? recipe.ingredients.length : 0
 
     return `
       <div class="history-item" data-id="${recipe.id}">
@@ -450,176 +384,176 @@ function renderHistory() {
           </button>
         </div>
       </div>
-    `;
-  }).join('');
+    `
+  }).join('')
 
   list.querySelectorAll('.btn-history-load').forEach(btn => {
-    btn.addEventListener('click', () => loadRecipe(btn.dataset.id));
-  });
+    btn.addEventListener('click', () => loadRecipe(btn.dataset.id))
+  })
   list.querySelectorAll('.btn-history-dup').forEach(btn => {
-    btn.addEventListener('click', () => duplicateRecipe(btn.dataset.id));
-  });
+    btn.addEventListener('click', () => duplicateRecipe(btn.dataset.id))
+  })
   list.querySelectorAll('.btn-history-del').forEach(btn => {
-    btn.addEventListener('click', () => deleteRecipe(btn.dataset.id));
-  });
+    btn.addEventListener('click', () => deleteRecipe(btn.dataset.id))
+  })
 }
 
 function loadRecipe(id) {
-  const history = loadHistory();
-  const recipe = history.find(r => r.id === id);
+  const history = loadHistory()
+  const recipe = history.find(r => r.id === id)
   if (!recipe) {
-    showToast('Receta no encontrada');
-    return;
+    showToast('Receta no encontrada')
+    return
   }
 
-  document.getElementById('recipe-name').value = recipe.name;
-  document.getElementById('pieces-count').value = recipe.piecesCount || 1;
-  document.getElementById('profit-margin').value = recipe.profitMargin ?? 50;
-  document.getElementById('labor-cost').value = recipe.laborCost ?? 0;
-  document.getElementById('operating-cost').value = recipe.operatingCost ?? 0;
-  document.getElementById('ingredients-list').innerHTML = '';
-  ingredientIdCounter = 0;
+  document.getElementById('recipe-name').value = recipe.name
+  document.getElementById('pieces-count').value = recipe.piecesCount || 1
+  document.getElementById('profit-margin').value = recipe.profitMargin ?? 50
+  document.getElementById('labor-cost').value = recipe.laborCost ?? 0
+  document.getElementById('operating-cost').value = recipe.operatingCost ?? 0
+  document.getElementById('ingredients-list').innerHTML = ''
+  ingredientIdCounter = 0
 
   if (recipe.ingredients && recipe.ingredients.length > 0) {
-    recipe.ingredients.forEach(ing => addIngredient(ing));
+    recipe.ingredients.forEach(ing => addIngredient(ing))
   } else {
-    addIngredient();
+    addIngredient()
   }
 
   if (recipe.nextId) {
-    ingredientIdCounter = recipe.nextId;
+    ingredientIdCounter = recipe.nextId
   }
 
-  calculateAll();
-  closeHistoryModal();
-  showToast(`"${recipe.name}" cargada`);
+  calculateAll()
+  closeHistoryModal()
+  showToast(`"${recipe.name}" cargada`)
 }
 
 function duplicateRecipe(id) {
-  const history = loadHistory();
-  const recipe = history.find(r => r.id === id);
+  const history = loadHistory()
+  const recipe = history.find(r => r.id === id)
   if (!recipe) {
-    showToast('Receta no encontrada');
-    return;
+    showToast('Receta no encontrada')
+    return
   }
 
-  const dup = JSON.parse(JSON.stringify(recipe));
-  dup.id = Date.now().toString();
-  dup.name = recipe.name + ' (copia)';
-  dup.createdAt = new Date().toISOString();
-  dup.updatedAt = dup.createdAt;
+  const dup = JSON.parse(JSON.stringify(recipe))
+  dup.id = Date.now().toString()
+  dup.name = recipe.name + ' (copia)'
+  dup.createdAt = new Date().toISOString()
+  dup.updatedAt = dup.createdAt
 
-  history.unshift(dup);
-  safeStorageSet(HISTORY_KEY, JSON.stringify(history));
-  renderHistory();
-  showToast(`"${dup.name}" creada`);
+  history.unshift(dup)
+  safeStorageSet(HISTORY_KEY, JSON.stringify(history))
+  renderHistory()
+  showToast(`"${dup.name}" creada`)
 }
 
 function deleteRecipe(id) {
-  const history = loadHistory();
-  const recipe = history.find(r => r.id === id);
-  if (!recipe) return;
+  const history = loadHistory()
+  const recipe = history.find(r => r.id === id)
+  if (!recipe) return
 
-  if (!confirm(`¿Eliminar "${recipe.name}" del historial?`)) return;
+  if (!confirm(`¿Eliminar "${recipe.name}" del historial?`)) return
 
-  const filtered = history.filter(r => r.id !== id);
-  safeStorageSet(HISTORY_KEY, JSON.stringify(filtered));
-  renderHistory();
-  showToast(`"${recipe.name}" eliminada`);
+  const filtered = history.filter(r => r.id !== id)
+  safeStorageSet(HISTORY_KEY, JSON.stringify(filtered))
+  renderHistory()
+  showToast(`"${recipe.name}" eliminada`)
 }
 
 function openHistoryModal() {
-  renderHistory();
-  document.getElementById('history-modal').classList.remove('hidden');
+  renderHistory()
+  document.getElementById('history-modal').classList.remove('hidden')
 }
 
 function closeHistoryModal() {
-  document.getElementById('history-modal').classList.add('hidden');
+  document.getElementById('history-modal').classList.add('hidden')
 }
 
 function setupInstallPrompt() {
-  if (isWebView) return;
+  if (isWebView) return
 
   window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-    const banner = document.getElementById('install-banner');
-    if (banner) banner.classList.remove('hidden');
-  });
+    e.preventDefault()
+    deferredPrompt = e
+    const banner = document.getElementById('install-banner')
+    if (banner) banner.classList.remove('hidden')
+  })
 
-  const installBtn = document.getElementById('install-btn');
+  const installBtn = document.getElementById('install-btn')
   if (installBtn) {
     installBtn.addEventListener('click', async () => {
-      if (!deferredPrompt) return;
-      deferredPrompt.prompt();
-      const { outcome } = await deferredPrompt.userChoice;
+      if (!deferredPrompt) return
+      deferredPrompt.prompt()
+      const { outcome } = await deferredPrompt.userChoice
       if (outcome === 'accepted') {
-        showToast('¡App instalada exitosamente!');
+        showToast('¡App instalada exitosamente!')
       }
-      deferredPrompt = null;
-      const banner = document.getElementById('install-banner');
-      if (banner) banner.classList.add('hidden');
-    });
+      deferredPrompt = null
+      const banner = document.getElementById('install-banner')
+      if (banner) banner.classList.add('hidden')
+    })
   }
 
-  const dismissBtn = document.getElementById('dismiss-install');
+  const dismissBtn = document.getElementById('dismiss-install')
   if (dismissBtn) {
     dismissBtn.addEventListener('click', () => {
-      const banner = document.getElementById('install-banner');
-      if (banner) banner.classList.add('hidden');
-    });
+      const banner = document.getElementById('install-banner')
+      if (banner) banner.classList.add('hidden')
+    })
   }
 
   window.addEventListener('appinstalled', () => {
-    deferredPrompt = null;
-    const banner = document.getElementById('install-banner');
-    if (banner) banner.classList.add('hidden');
-    showToast('¡ReposteriaCalc instalada!');
-  });
+    deferredPrompt = null
+    const banner = document.getElementById('install-banner')
+    if (banner) banner.classList.add('hidden')
+    showToast('¡ReposteriaCalc instalada!')
+  })
 }
 
 function setupOfflineDetection() {
-  if (isWebView) return;
+  if (isWebView) return
 
-  window.addEventListener('online', () => showToast('Conexión restaurada'));
-  window.addEventListener('offline', () => showToast('Sin conexión - Modo offline'));
+  window.addEventListener('online', () => showToast('Conexión restaurada'))
+  window.addEventListener('offline', () => showToast('Sin conexión - Modo offline'))
 }
 
 function registerServiceWorker() {
-  if (isWebView) return;
-  if (!('serviceWorker' in navigator)) return;
-  if (window.location.protocol === 'file:') return;
+  if (isWebView) return
+  if (!('serviceWorker' in navigator)) return
+  if (window.location.protocol === 'file:') return
 
   window.addEventListener('load', async () => {
     try {
-      await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+      await navigator.serviceWorker.register('/sw.js', { scope: '/' })
     } catch (error) {
-      console.warn('SW registration skipped:', error.message);
+      console.warn('SW registration skipped:', error.message)
     }
-  });
+  })
 }
 
 function init() {
-  detectEnvironment();
+  detectEnvironment()
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const action = urlParams.get('action');
+  const urlParams = new URLSearchParams(window.location.search)
+  const action = urlParams.get('action')
 
-  document.getElementById('add-ingredient').addEventListener('click', () => addIngredient());
-  document.getElementById('save-recipe').addEventListener('click', saveRecipe);
-  document.getElementById('open-history').addEventListener('click', openHistoryModal);
-  document.getElementById('close-history').addEventListener('click', closeHistoryModal);
-  document.getElementById('clear-all').addEventListener('click', clearAll);
+  document.getElementById('add-ingredient').addEventListener('click', () => addIngredient())
+  document.getElementById('save-recipe').addEventListener('click', saveRecipe)
+  document.getElementById('open-history').addEventListener('click', openHistoryModal)
+  document.getElementById('close-history').addEventListener('click', closeHistoryModal)
+  document.getElementById('clear-all').addEventListener('click', clearAll)
 
   document.getElementById('history-modal').addEventListener('click', (e) => {
-    if (e.target.id === 'history-modal') closeHistoryModal();
-  });
+    if (e.target.id === 'history-modal') closeHistoryModal()
+  })
 
-  document.getElementById('pieces-count').addEventListener('input', calculateAll);
-  document.getElementById('profit-margin').addEventListener('input', calculateAll);
-  document.getElementById('recipe-name').addEventListener('input', calculateAll);
-  document.getElementById('labor-cost').addEventListener('input', calculateAll);
-  document.getElementById('operating-cost').addEventListener('input', calculateAll);
+  document.getElementById('pieces-count').addEventListener('input', calculateAll)
+  document.getElementById('profit-margin').addEventListener('input', calculateAll)
+  document.getElementById('recipe-name').addEventListener('input', calculateAll)
+  document.getElementById('labor-cost').addEventListener('input', calculateAll)
+  document.getElementById('operating-cost').addEventListener('input', calculateAll)
 
   const saved = loadData()
   if (action === 'history') {
@@ -637,4 +571,4 @@ function init() {
   window.history.replaceState({}, '', '/')
 }
 
-document.addEventListener('DOMContentLoaded', init);
+document.addEventListener('DOMContentLoaded', init)

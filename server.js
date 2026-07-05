@@ -41,7 +41,7 @@ function sendPage(res, statusCode, title, body) {
 }
 
 const server = http.createServer((req, res) => {
-  let filePath = path.join(ROOT, req.url === '/' ? 'index.html' : req.url)
+  const filePath = path.join(ROOT, req.url === '/' ? 'index.html' : req.url)
   const resolvedPath = path.resolve(filePath)
 
   if (!resolvedPath.startsWith(ROOT)) {
