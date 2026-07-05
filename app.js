@@ -1,4 +1,4 @@
-import { normalizeNumber, toBaseUnit, calculateIngredientCost, formatCurrency, isSameUnitGroup, escapeHtml, CURRENCY, UNIT_GROUPS, TO_BASE } from './src/calculations.js'
+import { normalizeNumber, calculateIngredientCost, formatCurrency, escapeHtml, CURRENCY } from './src/calculations.js'
 
 const STORAGE_KEY = 'reposteriacalc_data'
 const HISTORY_KEY = 'reposteriacalc_history'
@@ -20,7 +20,7 @@ function detectEnvironment() {
 function safeStorageGet(key) {
   try {
     return localStorage.getItem(key)
-  } catch (e) {
+  } catch {
     return key in memoryStorage ? memoryStorage[key] : null
   }
 }
@@ -28,7 +28,7 @@ function safeStorageGet(key) {
 function safeStorageSet(key, value) {
   try {
     localStorage.setItem(key, value)
-  } catch (e) {
+  } catch {
     memoryStorage[key] = value
   }
 }
@@ -329,7 +329,7 @@ function loadHistory() {
   try {
     const raw = safeStorageGet(HISTORY_KEY)
     return raw ? JSON.parse(raw) : []
-  } catch (e) {
+  } catch {
     return []
   }
 }
