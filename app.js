@@ -34,7 +34,7 @@ function safeStorageGet(key) {
   try {
     return localStorage.getItem(key);
   } catch (e) {
-    return memoryStorage[key] || null;
+    return key in memoryStorage ? memoryStorage[key] : null;
   }
 }
 
@@ -47,27 +47,48 @@ function safeStorageSet(key, value) {
 }
 
 function toBaseUnit(value, unit) {
+  if (!(unit in TO_BASE)) return value;
   return value * TO_BASE[unit];
 }
 
+function normalizeNumber(value) {
+  if (value == null || value === '') return 0
+  if (typeof value === 'string') {
+    value = value.replace(',', '.')
+  }
+  return value
+}
+
+function isSameUnitGroup(unit1, unit2) {
+  if (!unit1 || !unit2) return true
+  for (const group of Object.values(UNIT_GROUPS)) {
+    if (group.includes(unit1) && group.includes(unit2)) return true
+  }
+  return false
+}
+
 function calculateIngredientCost(ingredient) {
-  const price = parseFloat(ingredient.price) || 0;
-  const boughtQty = parseFloat(ingredient.boughtQty) || 0;
-  const usedQty = parseFloat(ingredient.usedQty) || 0;
+  const price = parseFloat(normalizeNumber(ingredient.price)) || 0;
+  const boughtQty = parseFloat(normalizeNumber(ingredient.boughtQty)) || 0;
+  const usedQty = parseFloat(normalizeNumber(ingredient.usedQty)) || 0;
   const boughtUnit = ingredient.boughtUnit;
   const usedUnit = ingredient.usedUnit;
 
-  if (price <= 0 || boughtQty <= 0 || usedQty <= 0) return 0;
+  if (price <= 0 || boughtQty <= 0 || usedQty <= 0) return { cost: 0, warning: false };
+
+  const warning = boughtUnit && usedUnit && !isSameUnitGroup(boughtUnit, usedUnit);
+
   if (boughtUnit === usedUnit) {
-    return (price / boughtQty) * usedQty;
+    return { cost: (price / boughtQty) * usedQty, warning };
   }
 
   const boughtBase = toBaseUnit(boughtQty, boughtUnit);
   const usedBase = toBaseUnit(usedQty, usedUnit);
-  return (price / boughtBase) * usedBase;
+  return { cost: (price / boughtBase) * usedBase, warning };
 }
 
 function formatCurrency(value) {
+  if (!Number.isFinite(value)) return `${CURRENCY}0.00`;
   return `${CURRENCY}${value.toFixed(2)}`;
 }
 
@@ -79,28 +100,39 @@ function calculateAll() {
   cards.forEach(card => {
     const id = card.dataset.id;
     const name = card.querySelector(`[data-field="name"][data-id="${id}"]`).value || 'Sin nombre';
-    const price = parseFloat(card.querySelector(`[data-field="price"][data-id="${id}"]`).value) || 0;
-    const boughtQty = parseFloat(card.querySelector(`[data-field="boughtQty"][data-id="${id}"]`).value) || 0;
+    const price = parseFloat(normalizeNumber(card.querySelector(`[data-field="price"][data-id="${id}"]`).value)) || 0;
+    const boughtQty = parseFloat(normalizeNumber(card.querySelector(`[data-field="boughtQty"][data-id="${id}"]`).value)) || 0;
     const boughtUnit = card.querySelector(`[data-field="boughtUnit"][data-id="${id}"]`).value;
-    const usedQty = parseFloat(card.querySelector(`[data-field="usedQty"][data-id="${id}"]`).value) || 0;
+    const usedQty = parseFloat(normalizeNumber(card.querySelector(`[data-field="usedQty"][data-id="${id}"]`).value)) || 0;
     const usedUnit = card.querySelector(`[data-field="usedUnit"][data-id="${id}"]`).value;
 
-    const cost = calculateIngredientCost({ price, boughtQty, boughtUnit, usedQty, usedUnit });
-    totalCost += cost;
+    const result = calculateIngredientCost({ price, boughtQty, boughtUnit, usedQty, usedUnit });
+    totalCost += result.cost;
 
     const costEl = card.querySelector('.ingredient-cost-value');
-    if (costEl) costEl.textContent = formatCurrency(cost);
+    if (costEl) costEl.textContent = formatCurrency(result.cost);
+
+    // M5: toggle unit group warning
+    const boughtSelect = card.querySelector(`[data-field="boughtUnit"][data-id="${id}"]`)
+    const usedSelect = card.querySelector(`[data-field="usedUnit"][data-id="${id}"]`)
+    if (result.warning) {
+      boughtSelect.classList.add('unit-warning')
+      usedSelect.classList.add('unit-warning')
+    } else {
+      boughtSelect.classList.remove('unit-warning')
+      usedSelect.classList.remove('unit-warning')
+    }
 
     if (boughtQty > 0 && usedQty > 0) {
-      breakdown.push({ name, cost });
+      breakdown.push({ name, cost: result.cost });
     }
   });
 
   const recipeName = document.getElementById('recipe-name').value || 'Sin nombre';
   const piecesCount = parseInt(document.getElementById('pieces-count').value) || 1;
-  const profitMargin = parseFloat(document.getElementById('profit-margin').value) || 0;
-  const laborCost = parseFloat(document.getElementById('labor-cost').value) || 0;
-  const operatingCost = parseFloat(document.getElementById('operating-cost').value) || 0;
+  const profitMargin = parseFloat(normalizeNumber(document.getElementById('profit-margin').value)) || 0;
+  const laborCost = parseFloat(normalizeNumber(document.getElementById('labor-cost').value)) || 0;
+  const operatingCost = parseFloat(normalizeNumber(document.getElementById('operating-cost').value)) || 0;
 
   const grandTotalCost = totalCost + laborCost + operatingCost;
   const unitCost = piecesCount > 0 ? grandTotalCost / piecesCount : 0;
@@ -138,9 +170,12 @@ function calculateAll() {
 }
 
 function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
 function createIngredientCard(data = {}) {
@@ -215,7 +250,7 @@ function createIngredientCard(data = {}) {
     setTimeout(() => {
       card.remove();
       calculateAll();
-    }, 250);
+    }, 300);
   });
 
   card.querySelectorAll('input, select').forEach(input => {
@@ -235,10 +270,10 @@ function addIngredient(data = {}) {
 
 function collectData() {
   const recipeName = document.getElementById('recipe-name').value;
-  const piecesCount = parseInt(document.getElementById('pieces-count').value) || 1;
-  const profitMargin = parseFloat(document.getElementById('profit-margin').value) || 0;
-  const laborCost = parseFloat(document.getElementById('labor-cost').value) || 0;
-  const operatingCost = parseFloat(document.getElementById('operating-cost').value) || 0;
+  const piecesCount = parseInt(normalizeNumber(document.getElementById('pieces-count').value)) || 1;
+  const profitMargin = parseFloat(normalizeNumber(document.getElementById('profit-margin').value)) || 0;
+  const laborCost = parseFloat(normalizeNumber(document.getElementById('labor-cost').value)) || 0;
+  const operatingCost = parseFloat(normalizeNumber(document.getElementById('operating-cost').value)) || 0;
 
   const ingredients = [];
   document.querySelectorAll('.ingredient-card').forEach(card => {
@@ -262,6 +297,7 @@ function saveData() {
     safeStorageSet(STORAGE_KEY, JSON.stringify(data));
   } catch (e) {
     console.warn('Could not save data:', e);
+    showToast('Error al guardar los datos');
   }
 }
 
@@ -272,6 +308,7 @@ function loadData() {
     return JSON.parse(raw);
   } catch (e) {
     console.warn('Could not load data:', e);
+    showToast('Error al cargar los datos');
     return null;
   }
 }
@@ -332,7 +369,6 @@ function saveRecipe() {
   }
 
   const history = loadHistory();
-  const existingIndex = history.findIndex(r => r.id === data.recipeName + '_' + (data.savedAt || ''));
   const now = new Date().toISOString();
 
   const recipeEntry = {
@@ -340,6 +376,8 @@ function saveRecipe() {
     name: recipeName,
     piecesCount: data.piecesCount,
     profitMargin: data.profitMargin,
+    laborCost: data.laborCost,
+    operatingCost: data.operatingCost,
     ingredients: data.ingredients,
     nextId: data.nextId,
     createdAt: now,
@@ -437,6 +475,8 @@ function loadRecipe(id) {
   document.getElementById('recipe-name').value = recipe.name;
   document.getElementById('pieces-count').value = recipe.piecesCount || 1;
   document.getElementById('profit-margin').value = recipe.profitMargin ?? 50;
+  document.getElementById('labor-cost').value = recipe.laborCost ?? 0;
+  document.getElementById('operating-cost').value = recipe.operatingCost ?? 0;
   document.getElementById('ingredients-list').innerHTML = '';
   ingredientIdCounter = 0;
 
@@ -581,28 +621,20 @@ function init() {
   document.getElementById('labor-cost').addEventListener('input', calculateAll);
   document.getElementById('operating-cost').addEventListener('input', calculateAll);
 
-  const saved = loadData();
+  const saved = loadData()
   if (action === 'history') {
-    setTimeout(openHistoryModal, 500);
+    setTimeout(openHistoryModal, 500)
   } else if (action === 'new' || !saved || !saved.ingredients || saved.ingredients.length === 0) {
-    addIngredient();
-    calculateAll();
+    addIngredient()
   } else {
-    restoreData(saved);
+    restoreData(saved)
   }
 
-  calculateAll();
-  setupInstallPrompt();
-  setupOfflineDetection();
-  registerServiceWorker();
+  setupInstallPrompt()
+  setupOfflineDetection()
+  registerServiceWorker()
 
-  if (action === 'history') {
-    setTimeout(openHistoryModal, 500);
-  } else if (action === 'new') {
-    clearAllNoConfirm();
-  }
-
-  window.history.replaceState({}, '', '/');
+  window.history.replaceState({}, '', '/')
 }
 
 document.addEventListener('DOMContentLoaded', init);

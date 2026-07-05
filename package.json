@@ -1,0 +1,10 @@
+{
+  "name": "reposteriacalc",
+  "version": "1.1.0",
+  "description": "Bakery cost calculator PWA",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "private": true
+}

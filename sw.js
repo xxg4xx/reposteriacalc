@@ -1,4 +1,4 @@
-const CACHE_NAME = 'reposteriacalc-v3';
+const CACHE_NAME = 'reposteriacalc-v4';
 
 const STATIC_ASSETS = [
   '/',
@@ -53,12 +53,7 @@ self.addEventListener('fetch', (event) => {
         .catch(() => {
           return caches.match('/index.html')
             .then((cached) => cached || caches.match('/'))
-            .catch(() => {
-              return new Response(
-                '<html><body style="font-family:system-ui;text-align:center;padding:40px;background:#FFF8FA"><h1 style="color:#B5607E">Sin conexion</h1><p>No se pudo cargar la app.</p><button onclick="location.reload()" style="background:#D4829E;color:white;border:none;padding:12px 24px;border-radius:10px;cursor:pointer;font-size:1rem">Reintentar</button></body></html>',
-                { headers: { 'Content-Type': 'text/html' } }
-              );
-            });
+            .catch(() => caches.match('/offline.html'));
         })
     );
     return;

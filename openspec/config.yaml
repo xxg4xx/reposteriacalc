@@ -1,0 +1,34 @@
+# openspec/config.yaml
+schema: spec-driven
+
+context: |
+  Tech stack: Vanilla JS PWA (no frameworks, no bundlers, no package.json)
+  Architecture: Single-page vanilla JS app with localStorage persistence, 
+    Service Worker for offline caching (cache-first static, network-first navigation),
+    Node.js HTTP dev server, Spanish UI.
+  Testing: No test runner, no CI, no linter, no type checker, no formatter.
+  Style: Vanilla ES6 browser JS, CSS custom properties, mobile-first responsive,
+    Spanish UI labels, English code identifiers, snake_case data attributes.
+
+rules:
+  proposal:
+    - Include rollback plan for risky changes
+  specs:
+    - Use Given/When/Then for scenarios
+    - Use RFC 2119 keywords (MUST, SHALL, SHOULD, MAY)
+  design:
+    - Include sequence diagrams for complex flows
+    - Document architecture decisions with rationale
+  tasks:
+    - Group by phase, use hierarchical numbering
+    - Keep tasks completable in one session
+  apply:
+    - Follow existing code patterns (vanilla JS, no frameworks)
+    tdd: false
+    test_command: ""
+  verify:
+    test_command: ""
+    build_command: ""
+    coverage_threshold: 0
+  archive:
+    - Warn before merging destructive deltas
